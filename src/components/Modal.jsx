@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { toast } from 'react-toastify';
+import axios from 'axios';
 // import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 export default function Modal({ open, setOpen }) {
@@ -10,13 +11,13 @@ export default function Modal({ open, setOpen }) {
 
 
     const schemaOptions = [
-        { label: "First Name", value: "first_name", type:"user_traits" },
-        { label: "Last Name", value: "last_name",type:"user_traits" },
-        { label: "Gender", value: "gender",type:"user_traits" },
-        { label: "Age", value: "age",type:"user_traits" },
-        { label: "Account Name", value: "account_name",type:"group_traits" },
-        { label: "City", value: "city",type:"group_traits" },
-        { label: "State", value: "state",type:"group_traits" },
+        { label: "First Name", value: "first_name", type: "user_traits" },
+        { label: "Last Name", value: "last_name", type: "user_traits" },
+        { label: "Gender", value: "gender", type: "user_traits" },
+        { label: "Age", value: "age", type: "user_traits" },
+        { label: "Account Name", value: "account_name", type: "group_traits" },
+        { label: "City", value: "city", type: "group_traits" },
+        { label: "State", value: "state", type: "group_traits" },
     ];
 
     const [segmentName, setSegmentName] = useState("");
@@ -54,15 +55,52 @@ export default function Modal({ open, setOpen }) {
     };
 
     const handleSaveSegment = async () => {
-        if(segmentName!==""){
-            if(selectedSchemas.length!==0){
+        const webhookURL = import.meta.env.VITE_WEBHOOK_URL;
+        if (segmentName !== "") {
+            if (selectedSchemas.length !== 0) {
+                // Construct the payload
+                const payload = {
+                    segment_name: segmentName,
+                    schema: selectedSchemas.map(schema => ({ [schema.value]: schema.label })),
+                };
 
-            }else{
-            toast.warning("Please add at least one schema.")
+                try {
+                    // Send the payload to the server using Axios
+                    axios.post(webhookURL, payload,{
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                      }).then((response) => {
+                        console.log("Segment saved successfully:", response.data);
+                        toast.success("Segment saved successfully!");
+                    }).catch((err)=>{
+                        console.log("Segment saving failed:", err);
+                        toast.error("Segment saving failed!");
+                    })
+
+                    // Reset the form
+                    setSegmentName("");
+                    setSelectedSchemas([]);
+                    setAvailableOptions([
+                        { label: "First Name", value: "first_name" },
+                        { label: "Last Name", value: "last_name" },
+                        { label: "Gender", value: "gender" },
+                        { label: "Age", value: "age" },
+                        { label: "Account Name", value: "account_name" },
+                        { label: "City", value: "city" },
+                        { label: "State", value: "state" },
+                    ]);
+                } catch (error) {
+                    console.error("Error saving segment:", error);
+                    alert("Failed to save the segment. Please try again.");
+                }
+
+            } else {
+                toast.warning("Please add at least one schema.")
 
             }
 
-        }else{
+        } else {
             toast.warning("Please enter a Segment Name")
         }
     };
@@ -83,8 +121,6 @@ export default function Modal({ open, setOpen }) {
                     >
                         <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             <div className="sm:flex sm:items-start">
-                                {/* <div className="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
-                </div> */}
                                 <div className="mt-3 text-center sm:mt-0 sm:text-left">
                                     <DialogTitle as="h3" className="text-xl  py-3 font-semibold text-gray-900">
                                         Saving Segment
@@ -92,7 +128,7 @@ export default function Modal({ open, setOpen }) {
                                     <hr />
                                     <div className="mt-3">
                                         <label className='font-semibold' >Enter the Name of the Segment</label>
-                                        <input type='text' onChange={(e)=>setSegmentName(e.target.value)} placeholder='Enter Segment Name' className='mt-2 text-base border-2 border-slate-500 px-3 py-1 rounded-md w-full ' />
+                                        <input type='text' onChange={(e) => setSegmentName(e.target.value)} placeholder='Enter Segment Name' className='mt-2 text-base border-2 border-slate-500 px-3 py-1 rounded-md w-full ' />
                                     </div>
                                     <div className='mt-6' >
                                         <p>To save your segment, you need to add your schemas to build the query</p>
